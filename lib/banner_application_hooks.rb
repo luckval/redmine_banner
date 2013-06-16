@@ -34,7 +34,13 @@ class BannerMessageHooks < Redmine::Hook::ViewListener
   def self.render_on(hook, options={})
     define_method hook do |context|
       if !options.include?(:if) || evaluate_if_option(options[:if], context)
-        context[:controller].send(:render_to_string, {:locals => context}.merge(options))
+        if context[:hook_caller].respond_to?(:render)
+          context[:hook_caller].send(:render, {:locals => context}.merge(options))
+        elsif context[:controller].is_a?(ActionController::Base)
+          context[:controller].send(:render_to_string, {:locals => context}.merge(options))
+        else
+          raise "Cannot render #{self.name} hook from #{context[:hook_caller].class.name}"
+        end
       end
     end
   end
